@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
 
   node:
-    image: node:22-alpine
+    image: node:26-alpine
     profiles: [dev]
     user: ${UID:-1000}:${GID:-1000}
     working_dir: /var/www
