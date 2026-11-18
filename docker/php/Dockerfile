@@ -20,7 +20,7 @@ RUN addgroup -g "${GID}" app && adduser -D -u "${UID}" -G app app
 USER app
 
 
-FROM node:22-alpine AS assets
+FROM node:26-alpine AS assets
 
 WORKDIR /app
 COPY package.json package-lock.json ./
