@@ -50,3 +50,29 @@ jobs:
       - run: curl -fsS -o /dev/null http://localhost:8025
       - if: failure()
         run: docker compose logs
+
+  new-project:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialise as a new project
+        run: make init NAME=demo-app VENDOR=acme
+      - run: grep -qx 'APP_NAME=demo-app' .env.example
+      - run: grep -q 'acme/demo-app' composer.json
+      - run: make up
+      - run: curl -kfsS https://localhost:8443/ | grep -q '<title>demo-app</title>'
+      - run: make test
+
+  production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production environment
+        run: |
+          cp .env.example .env
+          echo "APP_KEY=base64:$(openssl rand -base64 32)" >> .env
+      - run: docker compose -f compose.prod.yaml up -d --build --wait
+      - run: curl -fsS http://localhost:8080/up
+      - run: curl -fsS http://localhost:8080/ | grep -q '/build/assets/'
+      - if: failure()
+        run: docker compose -f compose.prod.yaml logs

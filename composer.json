@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "alexoffss/laravel-base",
+    "name": "okarabudka/laravel-base",
     "type": "project",
     "description": "Laravel 12 project template with Docker (PHP-FPM, Nginx, Mailpit), Pest, Pint, Larastan and CI.",
     "keywords": [
@@ -83,7 +83,12 @@
     },
     "extra": {
         "laravel": {
-            "dont-discover": []
+            "dont-discover": [],
+            "installer": {
+                "post-create-project": [
+                    "sh bin/init"
+                ]
+            }
         }
     },
     "config": {

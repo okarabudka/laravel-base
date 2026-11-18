@@ -18,7 +18,9 @@ services:
 
   php:
     build:
-      context: docker/php
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: dev
       args:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
@@ -29,6 +31,19 @@ services:
     depends_on:
       - mail
     restart: unless-stopped
+
+  node:
+    image: node:22-alpine
+    profiles: [dev]
+    user: ${UID:-1000}:${GID:-1000}
+    working_dir: /var/www
+    command: sh -c "npm ci --ignore-scripts && npm run dev"
+    environment:
+      npm_config_cache: /tmp/npm
+    ports:
+      - 5173:5173
+    volumes:
+      - *project
 
   mail:
     image: axllent/mailpit:v1.27

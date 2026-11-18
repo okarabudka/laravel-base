@@ -10,10 +10,13 @@ COMPOSE := docker compose
 # -T keeps exec usable without a TTY (CI, scripts).
 EXEC := $(COMPOSE) exec -T php
 
-.PHONY: help certs env up down sh test lint fix
+.PHONY: help init certs env up dev down sh test lint fix
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
+
+init: ## Rename the template copy: make init NAME=my-app [VENDOR=acme]
+	@sh bin/init "$(NAME)" "$(VENDOR)"
 
 certs: ## Create a self-signed TLS certificate (skipped if present)
 	@sh docker/conf/ssl/generate.sh
@@ -28,8 +31,12 @@ up: certs env ## Build and start containers, install dependencies, migrate
 	@grep -q '^APP_KEY=.\+' .env || $(EXEC) php artisan key:generate
 	$(EXEC) php artisan migrate --force
 
+dev: up ## Start the Vite dev server with hot reload (https://localhost:5173)
+	$(COMPOSE) --profile dev up -d node
+	@echo "Vite: https://localhost:5173  (logs: docker compose logs -f node)"
+
 down: ## Stop and remove containers
-	$(COMPOSE) down
+	$(COMPOSE) --profile dev down
 
 sh: ## Open a shell in the PHP container
 	$(COMPOSE) exec php sh

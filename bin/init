@@ -1,0 +1,52 @@
+#!/bin/sh
+# Turn a fresh copy of the template into your project: app name, Composer name, README and CI badge.
+# Usage: bin/init [name] [vendor]   (defaults: current directory name, GitHub owner from `origin` or "app")
+# Safe to run again; the README is only replaced while it is still the template README.
+set -eu
+
+cd "$(dirname "$0")/.."
+
+slug() {
+    printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//'
+}
+
+origin=$(git config --get remote.origin.url 2>/dev/null || true)
+owner=$(printf '%s' "$origin" | sed -n 's#.*github\.com[:/]\([^/]*\)/.*#\1#p')
+
+name=$(slug "${1:-$(basename "$PWD")}")
+vendor=$(slug "${2:-${owner:-app}}")
+[ -n "$name" ] || { echo "bin/init: empty project name" >&2; exit 1; }
+
+for file in .env.example .env; do
+    [ -f "$file" ] && sed -i.bak "s/^APP_NAME=.*/APP_NAME=$name/" "$file" && rm -f "$file.bak"
+done
+
+sed -i.bak \
+    -e "s#^    \"name\": \".*\",#    \"name\": \"$vendor/$name\",#" \
+    -e "s#^    \"description\": \".*\",#    \"description\": \"The $name application.\",#" \
+    composer.json && rm -f composer.json.bak
+
+if grep -q '<!-- laravel-base template readme -->' README.md; then
+    badge=''
+    if [ -n "$owner" ]; then
+        repo=$(printf '%s' "$origin" | sed -n 's#.*github\.com[:/][^/]*/\([^/]*\)$#\1#p' | sed 's/\.git$//')
+        badge="[![CI](https://github.com/$owner/$repo/actions/workflows/ci.yml/badge.svg)](https://github.com/$owner/$repo/actions/workflows/ci.yml)"
+    fi
+    cat > README.md <<README
+# $name
+
+$badge
+
+Built from [laravel-base](https://github.com/okarabudka/laravel-base).
+
+## Quick start
+
+\`\`\`bash
+make up
+\`\`\`
+
+Open https://localhost:8443 (self-signed certificate) and Mailpit at http://localhost:8025. Run \`make help\` for all targets.
+README
+fi
+
+echo "Project initialised as $vendor/$name."

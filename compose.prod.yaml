@@ -1,0 +1,59 @@
+# Production-like stack: docker compose -f compose.prod.yaml up -d --build
+# Requires APP_KEY in .env (or the environment); TLS is expected to terminate in front of `web`.
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: app
+  image: laravel-base-app
+  env_file: .env
+  environment: &app-env
+    APP_ENV: production
+    APP_DEBUG: "false"
+    DB_DATABASE: /var/www/database/sqlite/database.sqlite
+  volumes:
+    - storage:/var/www/storage
+    - database:/var/www/database/sqlite
+  restart: unless-stopped
+
+services:
+  app:
+    <<: *app
+    environment:
+      <<: *app-env
+      RUN_MIGRATIONS: "true"
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: web
+    ports:
+      - ${HTTP_PORT:-8080}:80
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  queue:
+    <<: *app
+    command: ["php", "artisan", "queue:work", "--tries=3", "--max-time=3600"]
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "queue:work"]
+    depends_on:
+      app:
+        condition: service_healthy
+
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "schedule:work"]
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  storage:
+  database:
