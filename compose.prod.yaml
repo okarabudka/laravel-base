@@ -1,6 +1,8 @@
 # Production-like stack: docker compose -f compose.prod.yaml up -d --build
 # Requires APP_KEY in .env (or the environment); TLS is expected to terminate in front of `web`.
 
+name: laravel-base-prod
+
 x-app: &app
   build:
     context: .
