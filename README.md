@@ -7,7 +7,7 @@
 A starter kit for new Laravel projects: one command gives you a named project with a Docker environment, strict
 defaults, tests and CI, and the same repository builds a production image with a queue worker and scheduler.
 
-![Start page and make help](docs/screenshot.png)
+![Start page after make up](docs/screenshot.png)
 
 ## Create a project
 
