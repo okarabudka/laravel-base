@@ -7,3 +7,10 @@ parameters:
         - app
         - database
         - routes
+        - tests
+
+    ignoreErrors:
+        # arch()->preset() is resolved through Pest's TestCall proxy, which PHPStan cannot see.
+        -
+            identifiers: [method.notFound, method.nonObject]
+            path: tests/Unit/ArchTest.php

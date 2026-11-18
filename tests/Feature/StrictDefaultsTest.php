@@ -5,6 +5,9 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Console\WipeCommand;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Testing\PendingCommand;
+
+use function Pest\Laravel\artisan;
 
 test('models are strict outside production', function () {
     expect(Model::preventsLazyLoading())->toBeTrue()
@@ -17,13 +20,16 @@ test('dates are immutable', function () {
 });
 
 test('destructive database commands are blocked in production', function () {
-    $provider = new AppServiceProvider($this->app);
-    $this->app['env'] = 'production';
+    $app = app();
+    $provider = new AppServiceProvider($app);
+    $app['env'] = 'production';
     $provider->boot();
 
-    $this->artisan(WipeCommand::class, ['--force' => true])->assertFailed();
+    $command = artisan(WipeCommand::class, ['--force' => true]);
+    assert($command instanceof PendingCommand);
+    $command->assertFailed()->run();
 
     // Model strictness is static; restore it for the following tests.
-    $this->app['env'] = 'testing';
+    $app['env'] = 'testing';
     $provider->boot();
 });

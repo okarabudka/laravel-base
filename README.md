@@ -7,8 +7,8 @@ public images, a Makefile and quality checks that run from the first commit.
 
 ## What's inside
 
-- Laravel 12 on PHP 8.3, no domain code, SQLite by default.
-- Docker Compose: Nginx (HTTP and HTTPS), PHP-FPM built from `php:8.3-fpm-alpine`, Mailpit for outgoing mail.
+- Laravel 12 on PHP 8.5, no domain code, SQLite by default.
+- Docker Compose: Nginx (HTTP and HTTPS), PHP-FPM built from `php:8.5-fpm-alpine`, Mailpit for outgoing mail.
   MariaDB and Redis are available as an optional profile.
 - Pest for tests, Laravel Pint for code style, Larastan (PHPStan, level `max`) for static analysis.
 - GitHub Actions: style, static analysis and tests, a secret scan with gitleaks, and a Docker smoke test.

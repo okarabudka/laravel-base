@@ -1,5 +1,7 @@
 <?php
 
+use function Pest\Laravel\get;
+
 test('the application returns a successful response', function () {
-    $this->get('/')->assertOk();
+    get('/')->assertOk();
 });
