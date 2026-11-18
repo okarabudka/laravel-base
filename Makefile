@@ -1,45 +1,44 @@
-# Makefile
+# Makefile — local Docker workflow. Run `make help` for the list of targets.
 
-SHELL = /bin/bash
+SHELL := /bin/bash
+.DEFAULT_GOAL := help
 
-ifndef VERBOSE
-MAKEFLAGS += --no-print-directory
-endif
+export UID := $(shell id -u)
+export GID := $(shell id -g)
 
-include $(PWD)/.env.example
--include $(PWD)/.env
+COMPOSE := docker compose
+# -T keeps exec usable without a TTY (CI, scripts).
+EXEC := $(COMPOSE) exec -T php
 
-help:
-	@printf '		'
-	@make print-color-blue TEXT='** Available commands **\n\n'
-	@make print-color-green TEXT='install-backend'
-	@printf '		install backend dependencies\n'
+.PHONY: help certs env up down sh test lint fix
 
-install-backend: init-env up-backend
-	@make composer-install
-	@make docker-exec CONTAINER="php" CONTAINER_CMD="sh -c 'php artisan storage:link --force'"
-	@make up-db
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
 
-composer-install:
-	@make docker-exec CONTAINER="php" CONTAINER_CMD="composer install -n"
+certs: ## Create a self-signed TLS certificate (skipped if present)
+	@sh docker/conf/ssl/generate.sh
 
-init-env:
+env: ## Create .env and the SQLite database file (skipped if present)
 	@test -f .env || cp .env.example .env
+	@touch database/database.sqlite
 
-up-db:
-	@make docker-exec CONTAINER="php" CONTAINER_CMD="php artisan migrate"
+up: certs env ## Build and start containers, install dependencies, migrate
+	$(COMPOSE) up -d --build
+	$(EXEC) composer install --no-interaction
+	@grep -q '^APP_KEY=.\+' .env || $(EXEC) php artisan key:generate
+	$(EXEC) php artisan migrate --force
 
-up-backend:
-	@make docker-compose-exec COMPOSE_CMD="up -d web"
+down: ## Stop and remove containers
+	$(COMPOSE) down
 
-docker-exec:
-	@docker exec -it $(APP_NAME)-$(CONTAINER) $(CONTAINER_CMD)
+sh: ## Open a shell in the PHP container
+	$(COMPOSE) exec php sh
 
-docker-compose-exec:
-	@docker compose $(COMPOSE_CMD)
+test: ## Run the test suite
+	$(EXEC) composer test
 
-print-color-green:
-	@printf '\033[0;32m${TEXT}\033[0m'
+lint: ## Check code style (Pint) and run static analysis (PHPStan)
+	$(EXEC) composer lint
 
-print-color-blue:
-	@printf '\033[0;36m${TEXT}\033[0m'
+fix: ## Fix code style (Pint)
+	$(EXEC) composer fix
