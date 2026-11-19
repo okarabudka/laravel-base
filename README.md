@@ -95,6 +95,13 @@ git add -A && git commit -m "Start my-app from laravel-base"
 
 It is safe to run again.
 
+### Open in Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/okarabudka/laravel-base)
+
+The dev container generates the project, starts PHP, Nginx and Mailpit and forwards the app (HTTPS) and Mailpit.
+It works the same way in VS Code with the Dev Containers extension.
+
 ### Just try it
 
 ```bash
@@ -161,6 +168,7 @@ docker/conf/               Nginx, MariaDB and TLS configuration
 docker-compose.yml         local development stack
 compose.prod.yaml          production-like stack with queue and scheduler
 .github/                   CI workflow and Dependabot
+.devcontainer/             Codespaces and VS Code dev container
 ```
 
 ## Status

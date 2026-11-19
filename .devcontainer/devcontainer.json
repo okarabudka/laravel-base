@@ -1,0 +1,27 @@
+{
+    "name": "laravel-base",
+    "dockerComposeFile": ["../docker-compose.yml"],
+    "service": "php",
+    "runServices": ["php", "web", "mail"],
+    "workspaceFolder": "/var/www",
+    "remoteUser": "app",
+    "initializeCommand": "make certs app env",
+    "postCreateCommand": "composer install --no-interaction && (grep -q '^APP_KEY=.' .env || php artisan key:generate) && php artisan migrate --force",
+    "forwardPorts": ["web:443", "mail:8025"],
+    "portsAttributes": {
+        "web:443": { "label": "App (HTTPS)", "protocol": "https" },
+        "mail:8025": { "label": "Mailpit" }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "laravel.vscode-laravel",
+                "bmewburn.vscode-intelephense-client",
+                "EditorConfig.EditorConfig"
+            ]
+        },
+        "codespaces": {
+            "openFiles": ["README.md"]
+        }
+    }
+}
