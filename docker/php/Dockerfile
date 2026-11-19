@@ -65,7 +65,7 @@ CMD ["php-fpm"]
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 CMD pgrep -f "php-fpm: master" > /dev/null || exit 1
 
 
-FROM nginx:1.27-alpine AS web
+FROM nginx:1.29-alpine AS web
 
 COPY docker/conf/nginx/production.conf /etc/nginx/conf.d/default.conf
 COPY public /var/www/public
