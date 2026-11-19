@@ -40,7 +40,8 @@ FROM base AS app
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
-    LOG_CHANNEL=stderr
+    LOG_CHANNEL=stderr \
+    LOG_STDERR_FORMATTER=Monolog\\Formatter\\JsonFormatter
 
 COPY docker/php/conf.d/production.ini /usr/local/etc/php/conf.d/zz-production.ini
 COPY --from=vendor /var/www/vendor ./vendor
