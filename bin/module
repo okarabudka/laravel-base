@@ -1,0 +1,73 @@
+#!/bin/sh
+# Adds an optional module to the generated project. Runs inside the PHP container (see bin/init).
+#   api      Sanctum token auth and routes/api.php (php artisan install:api)
+#   auth     Laravel Fortify: registration, login, password reset and 2FA endpoints without a UI
+#   horizon  Laravel Horizon on Redis; the production queue container runs Horizon
+set -eu
+
+cd "$(dirname "$0")/.."
+
+set_env() {
+    # set_env KEY VALUE: replace or append in .env.example (and .env when present).
+    for file in .env.example .env; do
+        [ -f "$file" ] || continue
+        if grep -q "^$1=" "$file"; then
+            sed -i "s#^$1=.*#$1=$2#" "$file"
+        else
+            printf '%s=%s\n' "$1" "$2" >> "$file"
+        fi
+    done
+}
+
+case "${1:-}" in
+    api)
+        [ -f routes/api.php ] && { echo "api: already installed"; exit 0; }
+        php artisan install:api --no-interaction --without-migration-prompt
+        php -r '
+            $f = "app/Models/User.php"; $c = file_get_contents($f);
+            $c = str_replace("use Illuminate\\Notifications\\Notifiable;", "use Illuminate\\Notifications\\Notifiable;\nuse Laravel\\Sanctum\\HasApiTokens;", $c, $a);
+            $c = preg_replace("/use HasFactory, Notifiable;/", "use HasApiTokens, HasFactory, Notifiable;", $c, 1, $b);
+            if ($a !== 1 || $b !== 1) { fwrite(STDERR, "api: could not add HasApiTokens to $f\n"); exit(1); }
+            file_put_contents($f, $c);'
+        ;;
+    auth)
+        [ -f config/fortify.php ] && { echo "auth: already installed"; exit 0; }
+        composer require --no-interaction laravel/fortify
+        php artisan fortify:install --no-interaction
+        # Read request input as strings so the scaffold passes PHPStan at level max.
+        php bin/patch-file.php app/Providers/FortifyServiceProvider.php \
+            'Str::lower($request->input(Fortify::username()))' 'Str::lower($request->string(Fortify::username())->toString())'
+        php bin/patch-file.php app/Providers/FortifyServiceProvider.php \
+            "\$request->input('credential.id');" "\$request->string('credential.id')->toString();"
+        ;;
+    horizon)
+        [ -f config/horizon.php ] && { echo "horizon: already installed"; exit 0; }
+        composer require --no-interaction laravel/horizon
+        php artisan horizon:install --no-interaction
+        php bin/patch-file.php app/Providers/HorizonServiceProvider.php \
+            "function (\$user = null) {
+            return in_array(optional(\$user)->email, [" "function (?\\App\\Models\\User \$user = null) {
+            return in_array(\$user?->email, ["
+        set_env QUEUE_CONNECTION redis
+        # Redis runs by default in development; production gets a Redis service and runs Horizon as the worker.
+        php -r '
+            $dev = file_get_contents("docker-compose.yml");
+            $dev = preg_replace("/(  redis:\n    image: [^\n]+\n)    profiles: \[full\]\n/", "$1", $dev, 1, $a);
+            $prod = file_get_contents("compose.prod.yaml");
+            $prod = str_replace("\"queue:work\", \"--tries=3\", \"--max-time=3600\"]", "\"horizon\"]", $prod, $b);
+            $prod = str_replace("[\"CMD\", \"pgrep\", \"-f\", \"queue:work\"]", "[\"CMD\", \"pgrep\", \"-f\", \"horizon\"]", $prod, $c);
+            $prod = str_replace("\nvolumes:\n", "\n  redis:\n    image: redis:7-alpine\n    restart: unless-stopped\n\nvolumes:\n", $prod, $d);
+            if ($a !== 1 || $b !== 1 || $c !== 1 || $d !== 1) { fwrite(STDERR, "horizon: compose files have an unexpected shape\n"); exit(1); }
+            file_put_contents("docker-compose.yml", $dev);
+            file_put_contents("compose.prod.yaml", $prod);'
+        ;;
+    *)
+        echo "Unknown module '${1:-}'. Available: api, auth, horizon" >&2
+        exit 1
+        ;;
+esac
+
+# Installers write files in their own style; keep the project lint-clean.
+vendor/bin/pint --quiet
+
+echo "Module $1 installed."

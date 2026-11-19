@@ -7,16 +7,22 @@ export UID := $(shell id -u)
 export GID := $(shell id -g)
 
 COMPOSE := docker compose
+comma := ,
 # -T keeps exec usable without a TTY (CI, scripts).
 EXEC := $(COMPOSE) exec -T php
 
-.PHONY: help init app sync-template certs env up dev down sh test coverage mutate lint fix
+.PHONY: help init module app sync-template certs env up dev down sh test coverage mutate lint fix
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
 
-init: app ## Turn this copy into your project: make init NAME=my-app [VENDOR=acme]
+init: app ## Turn this copy into your project: make init NAME=my-app [VENDOR=acme] [WITH=api,auth,horizon]
 	@sh bin/init "$(NAME)" "$(VENDOR)"
+	@for m in $(subst $(comma), ,$(WITH)); do $(MAKE) --no-print-directory module M=$$m || exit 1; done
+
+module: ## Add an optional module later: make module M=api|auth|horizon
+	@test -n "$(M)" || { echo "Usage: make module M=api|auth|horizon"; exit 1; }
+	$(COMPOSE) run --rm --no-deps php sh bin/module $(M)
 
 app: ## Install the latest Laravel and apply the template (first run only)
 	@test -f artisan || { $(COMPOSE) build php && $(COMPOSE) run --rm --no-deps php sh bin/generate; }
