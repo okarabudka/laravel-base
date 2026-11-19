@@ -117,6 +117,7 @@ If a port is taken, change `HTTP_PORT`, `HTTPS_PORT` or `MAILPIT_PORT` in `.env`
 | Target           | What it does                                                    |
 |------------------|-----------------------------------------------------------------|
 | `make init`      | Turn the copy into your project: `make init NAME=my-app [VENDOR=acme]` |
+| `make sync-template` | Show template changes; `APPLY=1` takes over infrastructure files |
 | `make up`        | Generate on first run, then start containers, install, migrate  |
 | `make app`       | Only generate the Laravel project (first run)                   |
 | `make dev`       | `make up` plus the Vite dev server with hot reload              |
@@ -126,6 +127,13 @@ If a port is taken, change `HTTP_PORT`, `HTTPS_PORT` or `MAILPIT_PORT` in `.env`
 | `make lint`      | Check code style (Pint) and run PHPStan                         |
 | `make fix`       | Fix code style (Pint)                                           |
 | `make help`      | List all targets                                                |
+
+### Keep up with the template
+
+Projects drift from the template once they start. `make sync-template` downloads the current template and lists
+infrastructure files (Docker, Makefile, CI, dev container, scripts) that are new or changed, plus application files
+the template provides, such as the health check and tests. `make sync-template APPLY=1` takes over the infrastructure
+files. Your own files stay, and application code is never overwritten: you merge those changes by hand.
 
 ## Development services and ports
 
@@ -162,6 +170,7 @@ bin/generate               installs the latest Laravel and applies the template
 bin/patch-skeleton.php     anchored edits to skeleton files
 bin/lock-assets            locks frontend packages (14-day cooldown, no install scripts)
 bin/init                   turns a copy into your project
+bin/sync-template          compares a project with the current template
 overlay/                   files the template adds to every project
 docker/php/Dockerfile      dev, app (production PHP-FPM) and web (production Nginx) targets
 docker/conf/               Nginx, MariaDB and TLS configuration

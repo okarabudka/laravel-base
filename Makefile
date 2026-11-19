@@ -10,7 +10,7 @@ COMPOSE := docker compose
 # -T keeps exec usable without a TTY (CI, scripts).
 EXEC := $(COMPOSE) exec -T php
 
-.PHONY: help init app certs env up dev down sh test coverage mutate lint fix
+.PHONY: help init app sync-template certs env up dev down sh test coverage mutate lint fix
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
@@ -21,6 +21,9 @@ init: app ## Turn this copy into your project: make init NAME=my-app [VENDOR=acm
 app: ## Install the latest Laravel and apply the template (first run only)
 	@test -f artisan || { $(COMPOSE) build php && $(COMPOSE) run --rm --no-deps php sh bin/generate; }
 	@test -f package-lock.json || $(COMPOSE) --profile dev run --rm --no-deps node sh bin/lock-assets
+
+sync-template: ## Show template changes since this project started; APPLY=1 takes over infrastructure
+	@sh bin/sync-template
 
 certs: ## Create a self-signed TLS certificate (skipped if present)
 	@sh docker/conf/ssl/generate.sh
