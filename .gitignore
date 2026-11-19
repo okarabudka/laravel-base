@@ -52,3 +52,6 @@ docker/conf/ssl/*.pem
 /AGENTS.md
 /CLAUDE.md
 # <<< laravel-base
+
+/coverage.txt
+/mutations.txt

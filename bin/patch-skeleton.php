@@ -91,5 +91,7 @@ $composer['description'] = 'A Laravel application.';
 $composer['scripts']['test'] = ['@php artisan config:clear --ansi', '@php artisan test'];
 $composer['scripts']['lint'] = ['pint --test', 'phpstan analyse --no-progress --memory-limit=1G'];
 $composer['scripts']['fix'] = ['pint'];
+$composer['scripts']['coverage'] = ['@php artisan config:clear --ansi', 'pest --coverage --min=80'];
+$composer['scripts']['mutate'] = ['@php artisan config:clear --ansi', 'pest --mutate --everything --covered-only --min=70'];
 $composer['config']['allow-plugins']['pestphp/pest-plugin'] = true;
 file_put_contents('composer.json', json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n");

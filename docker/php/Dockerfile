@@ -12,6 +12,9 @@ WORKDIR /var/www
 
 FROM base AS dev
 
+# Code coverage for `make coverage` and `make mutate`.
+RUN install-php-extensions pcov
+
 # Match the host user so files written to the mounted project stay editable.
 ARG UID=1000
 ARG GID=1000

@@ -10,7 +10,7 @@ COMPOSE := docker compose
 # -T keeps exec usable without a TTY (CI, scripts).
 EXEC := $(COMPOSE) exec -T php
 
-.PHONY: help init app certs env up dev down sh test lint fix
+.PHONY: help init app certs env up dev down sh test coverage mutate lint fix
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
@@ -47,6 +47,12 @@ sh: ## Open a shell in the PHP container
 
 test: ## Run the test suite
 	$(EXEC) composer test
+
+coverage: ## Run the tests with code coverage (fails below 80 %)
+	$(EXEC) composer coverage
+
+mutate: ## Run mutation testing on covered code (fails below 70 %)
+	$(EXEC) composer mutate
 
 lint: ## Check code style (Pint) and run static analysis (PHPStan)
 	$(EXEC) composer lint

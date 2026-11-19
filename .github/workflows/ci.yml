@@ -20,7 +20,27 @@ jobs:
       - name: Generated files stay out of the template repository
         run: test -z "$(git status --porcelain)" || { git status --porcelain; exit 1; }
       - run: make lint
-      - run: make test
+      - name: Tests with coverage
+        run: |
+          set -o pipefail
+          make coverage | tee coverage.txt
+      - name: Mutation testing
+        run: |
+          set -o pipefail
+          make mutate | tee mutations.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '### Coverage'
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' coverage.txt | grep -E '%|Total' || true
+            echo '```'
+            echo '### Mutation testing'
+            echo '```'
+            sed 's/\x1b\[[0-9;]*m//g' mutations.txt | grep -E 'Mutations:|Score:' || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - run: curl -kfsS https://localhost:8443/health
       - run: curl -fsS -o /dev/null http://localhost:8025
       - if: failure()
