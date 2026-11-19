@@ -1,0 +1,50 @@
+# Kamal 2 deployment: `kamal setup` once, then `kamal deploy`. See https://kamal-deploy.org
+# Replace the hosts and the domain; `make init` sets the service and image names.
+service: laravel-base
+image: okarabudka/laravel-base
+
+servers:
+  web:
+    hosts:
+      - 192.0.2.10
+    env:
+      clear:
+        RUN_MIGRATIONS: "true"
+  job:
+    hosts:
+      - 192.0.2.10
+    cmd: php artisan queue:work --tries=3 --max-time=3600
+  scheduler:
+    hosts:
+      - 192.0.2.10
+    cmd: php artisan schedule:work
+
+proxy:
+  ssl: true
+  host: app.example.com
+  app_port: 80
+  healthcheck:
+    path: /up
+
+registry:
+  server: ghcr.io
+  username: okarabudka
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+  dockerfile: docker/php/Dockerfile
+  target: server
+
+env:
+  clear:
+    APP_ENV: production
+    APP_URL: https://app.example.com
+    DB_DATABASE: /var/www/database/sqlite/database.sqlite
+  secret:
+    - APP_KEY
+
+volumes:
+  - storage:/var/www/storage
+  - database:/var/www/database/sqlite

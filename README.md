@@ -151,7 +151,8 @@ To use MariaDB and Redis, run `docker compose --profile full up -d` and switch t
 
 ## Production
 
-`docker/php/Dockerfile` has two production targets: `app` (PHP-FPM) and `web` (Nginx with the built assets).
+`docker/php/Dockerfile` has three production targets: `app` (PHP-FPM), `web` (Nginx with the built assets) and
+`server` (both in one container, for Kamal).
 `compose.prod.yaml` runs them with a queue worker and the scheduler:
 
 ```bash
@@ -163,6 +164,27 @@ curl http://localhost:8080/health
 On start, the `app` container runs migrations and caches config, routes and views. TLS is expected to terminate in
 front of `web`, for example at a load balancer or reverse proxy.
 
+### Deploy with Kamal
+
+Every project ships a [Kamal](https://kamal-deploy.org) configuration in `config/deploy.yml`. It deploys to any
+server with SSH and Docker, with zero-downtime switches and automatic HTTPS:
+
+```bash
+# set the server address and domain in config/deploy.yml, then:
+export KAMAL_REGISTRY_PASSWORD=<GitHub token with write:packages> APP_KEY=<base64:...>
+kamal setup     # first time: installs Docker and kamal-proxy, then deploys
+kamal deploy    # every release
+```
+
+Kamal runs three roles from one image: `web` (Nginx and PHP-FPM, runs migrations), `job` (queue worker) and
+`scheduler`. The image is the Dockerfile's `server` target. SQLite and `storage/` live in Docker volumes on the server.
+
+### Images on GitHub Container Registry
+
+Pushing a tag such as `v1.2.0` builds and publishes the production images:
+- `ghcr.io/<owner>/<repo>` — the single-container image for Kamal;
+- `ghcr.io/<owner>/<repo>-app` and `-web` — the PHP-FPM and Nginx images for `compose.prod.yaml`.
+
 ## Repository layout
 
 ```
@@ -172,12 +194,13 @@ bin/lock-assets            locks frontend packages (14-day cooldown, no install 
 bin/init                   turns a copy into your project
 bin/sync-template          compares a project with the current template
 overlay/                   files the template adds to every project
-docker/php/Dockerfile      dev, app (production PHP-FPM) and web (production Nginx) targets
+docker/php/Dockerfile      dev, app (PHP-FPM), web (Nginx) and server (both, for Kamal) targets
 docker/conf/               Nginx, MariaDB and TLS configuration
 docker-compose.yml         local development stack
 compose.prod.yaml          production-like stack with queue and scheduler
 .github/                   CI workflow and Dependabot
 .devcontainer/             Codespaces and VS Code dev container
+overlay/config/deploy.yml  Kamal deployment (copied into every project)
 ```
 
 ## Status

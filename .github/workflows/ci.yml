@@ -82,5 +82,15 @@ jobs:
       - run: docker compose -f compose.prod.yaml up -d --build --wait
       - run: curl -fsS http://localhost:8080/health
       - run: curl -fsS http://localhost:8080/ | grep -q '/build/assets/'
+      - name: Single-container image for Kamal
+        run: |
+          docker build -f docker/php/Dockerfile --target server -t app-server .
+          docker run -d --name app-server -p 8081:80 --env-file .env -e RUN_MIGRATIONS=true \
+            -e DB_DATABASE=/var/www/database/sqlite/database.sqlite app-server
+          for _ in $(seq 1 30); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' app-server)" = healthy ] && break
+            sleep 2
+          done
+          curl -fsS http://localhost:8081/health
       - if: failure()
         run: docker compose -f compose.prod.yaml logs

@@ -9,4 +9,9 @@ fi
 
 php artisan optimize
 
+# The single-container image starts as root (Nginx); PHP-FPM workers run as www-data and need to write.
+if [ "$(id -u)" = "0" ]; then
+    chown -R www-data:www-data storage bootstrap/cache database
+fi
+
 exec "$@"

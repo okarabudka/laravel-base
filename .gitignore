@@ -51,6 +51,7 @@ docker/conf/ssl/*.pem
 /.npmrc
 /AGENTS.md
 /CLAUDE.md
+/.kamal/
 # <<< laravel-base
 
 /coverage.txt

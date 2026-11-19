@@ -18,6 +18,7 @@ slug() {
 
 origin=$(git config --get remote.origin.url 2>/dev/null || true)
 owner=$(printf '%s' "$origin" | sed -n 's#.*github\.com[:/]\([^/]*\)/.*#\1#p')
+repo=$(printf '%s' "$origin" | sed -n 's#.*github\.com[:/][^/]*/\([^/]*\)$#\1#p' | sed 's/\.git$//')
 
 name=$(slug "${1:-$(basename "$PWD")}")
 vendor=$(slug "${2:-${owner:-app}}")
@@ -37,10 +38,17 @@ sed -i.bak \
     -e "s#^    \"description\": \".*\",#    \"description\": \"The $name application.\",#" \
     composer.json && rm -f composer.json.bak
 
+if [ -f config/deploy.yml ]; then
+    sed -i.bak \
+        -e "s#^service: .*#service: $name#" \
+        -e "s#^image: .*#image: ${owner:-$vendor}/${repo:-$name}#" \
+        -e "s#^  username: .*#  username: ${owner:-$vendor}#" \
+        config/deploy.yml && rm -f config/deploy.yml.bak
+fi
+
 if grep -q '<!-- laravel-base template readme -->' README.md; then
     badge=''
     if [ -n "$owner" ]; then
-        repo=$(printf '%s' "$origin" | sed -n 's#.*github\.com[:/][^/]*/\([^/]*\)$#\1#p' | sed 's/\.git$//')
         badge="[![CI](https://github.com/$owner/$repo/actions/workflows/ci.yml/badge.svg)](https://github.com/$owner/$repo/actions/workflows/ci.yml)"
     fi
     cat > README.md <<README

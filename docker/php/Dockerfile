@@ -72,3 +72,21 @@ COPY public /var/www/public
 COPY --from=assets /app/public/build /var/www/public/build
 
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 CMD wget -qO /dev/null http://127.0.0.1/up || exit 1
+
+
+# Single-container image (Nginx + PHP-FPM) for platforms that route HTTP to one container, such as Kamal.
+FROM app AS server
+
+USER root
+
+RUN apk add --no-cache nginx \
+    && rm -f /etc/nginx/http.d/default.conf
+
+COPY docker/conf/nginx/production.conf /etc/nginx/http.d/app.conf
+RUN sed -i 's#fastcgi_pass app:9000;#fastcgi_pass 127.0.0.1:9000;#' /etc/nginx/http.d/app.conf \
+    && grep -q 'fastcgi_pass 127.0.0.1:9000;' /etc/nginx/http.d/app.conf
+
+COPY --chmod=755 docker/php/server.sh /usr/local/bin/server
+CMD ["server"]
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 CMD wget -qO /dev/null http://127.0.0.1/up || exit 1
