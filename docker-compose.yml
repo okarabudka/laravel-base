@@ -61,7 +61,7 @@ services:
       MARIADB_USER: ${DB_USERNAME:-laravel}
       MARIADB_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
-      - ./docker/data/db:/var/lib/mysql
+      - db-data:/var/lib/mysql
       - ./docker/conf/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
@@ -74,5 +74,9 @@ services:
     image: redis:7-alpine
     profiles: [full]
     volumes:
-      - ./docker/data/redis:/data
+      - redis-data:/data
     restart: unless-stopped
+
+volumes:
+  db-data:
+  redis-data:

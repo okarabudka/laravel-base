@@ -15,7 +15,6 @@ storage/framework/sessions/*
 storage/framework/views/*
 bootstrap/cache/*.php
 database/database.sqlite
-docker/data
 docker/conf/ssl/*.pem
 docker/conf/ssl/*.key
 overlay
