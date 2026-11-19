@@ -4,12 +4,55 @@
 [![CI](https://github.com/okarabudka/laravel-base/actions/workflows/ci.yml/badge.svg)](https://github.com/okarabudka/laravel-base/actions/workflows/ci.yml)
 [![Packagist](https://img.shields.io/packagist/v/okarabudka/laravel-base)](https://packagist.org/packages/okarabudka/laravel-base)
 
-A starter kit for new Laravel projects: one command gives you a named project with a Docker environment, strict
-defaults, tests and CI, and the same repository builds a production image with a queue worker and scheduler.
+A starter kit for new Laravel projects. It contains no business logic. It covers the setup every new project needs
+before the first feature: a local environment, quality checks, CI and a way to ship to production. You get all of
+it with one command and can start on the actual product.
 
 ![Start page after make up](docs/screenshot.png)
 
-## Create a project
+## Why it exists
+
+The first day of a new Laravel project usually looks the same: write a `docker-compose.yml`, fight file permissions
+in the container, set up tests and a linter, wire up CI, decide on sensible framework defaults, and only weeks later
+work out how the thing will actually run in production. Each project solves this slightly differently, and the
+differences cost time when you move between them.
+
+laravel-base makes those decisions once and keeps them current. Every project started from it has the same
+commands, the same checks and the same production setup, so `make up`, `make test` and `make lint` work in all of
+them.
+
+## What you get
+
+**A working project in minutes.** Laravel 12 on PHP 8.5 with SQLite. `make up` creates the TLS certificate and
+`.env`, builds the containers, installs dependencies, generates the app key and runs migrations. You only need
+Docker, make and openssl on your machine. PHP and Node are not required.
+
+**A local environment close to production.** Nginx with HTTPS, PHP-FPM, Mailpit to catch outgoing mail, and Vite with
+hot reload in its own container. MariaDB and Redis are one profile away. Containers run as your user, so files created
+inside them stay editable on the host.
+
+**Quality checks from the first commit.**
+- Pest tests, including architecture presets that keep the code structure in shape.
+- Laravel Pint for code style.
+- Larastan (PHPStan) at the strictest level, tests included.
+
+The same checks run in GitHub Actions together with a secret scan (gitleaks), a Docker smoke test, a run of a freshly
+initialised project and a production build.
+
+**Strict defaults.** Eloquent fails loudly on lazy loading, unknown attributes and silently dropped fields outside
+production. Dates are immutable. `migrate:fresh`, `db:wipe` and similar commands are blocked in production. Tests
+cover each of these, so removing one by accident turns CI red.
+
+**A path to production.** The same Dockerfile builds a production PHP-FPM image without dev dependencies, with an
+optimised autoloader, OPcache and pre-built assets, plus an Nginx image for the public files. `compose.prod.yaml` runs
+them together with a queue worker and the scheduler, with health checks on every service.
+
+**It stays current.** Dependabot proposes updates for Composer, npm, GitHub Actions and Docker images once a month,
+and CI shows whether they still pass.
+
+## How to use it
+
+### Start a new project
 
 With the Laravel installer:
 
@@ -18,7 +61,7 @@ laravel new my-app --using=okarabudka/laravel-base
 cd my-app && make up
 ```
 
-Or with **Use this template** on GitHub:
+Or click **Use this template** on GitHub, then:
 
 ```bash
 git clone <your-repository-url> my-app && cd my-app
@@ -26,23 +69,24 @@ make init NAME=my-app
 make up
 ```
 
-`make init` (or the installer hook) sets `APP_NAME`, the Composer name (`<github-owner>/my-app`) and replaces this
-README with a short project README that carries your CI badge. It is safe to run again.
+`make init` (the installer runs it for you) renames the copy to your project:
+- sets `APP_NAME`;
+- sets the Composer name (`<github-owner>/my-app`);
+- replaces this README with a short project README that carries your CI badge.
 
-Open https://localhost:8443 (self-signed certificate) and Mailpit at http://localhost:8025.
+It is safe to run again.
 
-## What's inside
+### Just try it
 
-- Laravel 12 on PHP 8.5, no domain code, SQLite by default.
-- Docker Compose for development: Nginx (HTTP and HTTPS), PHP-FPM built from `php:8.5-fpm-alpine`, Mailpit,
-  Vite with hot reload in a Node container; MariaDB and Redis as an optional profile.
-- Strict defaults: Eloquent strict mode outside production, immutable dates, destructive database commands blocked
-  in production. Each one is covered by a test.
-- Pest 4 with architecture presets, Laravel Pint, Larastan (PHPStan level `max`, tests included).
-- GitHub Actions: style, static analysis and tests, a secret scan with gitleaks, a Docker smoke test, a run of a
-  freshly initialised project and a production image check. Dependabot keeps Composer, npm, Actions and images current.
+```bash
+git clone https://github.com/okarabudka/laravel-base.git && cd laravel-base
+make up
+```
 
-## Make targets
+Open https://localhost:8443 (self-signed certificate, accept the browser warning) and Mailpit at http://localhost:8025.
+If a port is taken, change `HTTP_PORT`, `HTTPS_PORT` or `MAILPIT_PORT` in `.env` and run `make up` again.
+
+### Day-to-day work
 
 | Target           | What it does                                                    |
 |------------------|-----------------------------------------------------------------|
@@ -56,6 +100,8 @@ Open https://localhost:8443 (self-signed certificate) and Mailpit at http://loca
 | `make fix`       | Fix code style (Pint)                                           |
 | `make help`      | List all targets                                                |
 
+`make up` is idempotent: it keeps the existing certificate, `.env` and app key.
+
 ## Development services and ports
 
 | Service | Image                       | Port (host)                     |
@@ -67,15 +113,13 @@ Open https://localhost:8443 (self-signed certificate) and Mailpit at http://loca
 | db      | `mariadb:11.4` (`full`)     | —                               |
 | redis   | `redis:7-alpine` (`full`)   | —                               |
 
-Ports can be changed in `.env` (`HTTP_PORT`, `HTTPS_PORT`, `MAILPIT_PORT`). To use MariaDB and Redis, run
-`docker compose --profile full up -d` and switch the connection in `.env` (`DB_CONNECTION=mariadb`, `DB_HOST=db`
-and the commented `DB_*` values).
+To use MariaDB and Redis, run `docker compose --profile full up -d` and switch the connection in `.env`
+(`DB_CONNECTION=mariadb`, `DB_HOST=db` and the commented `DB_*` values).
 
 ## Production
 
-`docker/php/Dockerfile` has two production targets: `app` (PHP-FPM with Composer dependencies without dev packages,
-optimised autoloader, OPcache and built assets) and `web` (Nginx serving the public files). `compose.prod.yaml` runs
-them with a queue worker and the scheduler:
+`docker/php/Dockerfile` has two production targets: `app` (PHP-FPM) and `web` (Nginx with the built assets).
+`compose.prod.yaml` runs them with a queue worker and the scheduler:
 
 ```bash
 cp .env.example .env    # set APP_KEY, APP_URL and your database
@@ -83,8 +127,20 @@ docker compose -f compose.prod.yaml up -d --build --wait
 curl http://localhost:8080/up
 ```
 
-The `app` container runs migrations on start and caches config, routes and views. TLS is expected to terminate in
-front of `web` (a load balancer or reverse proxy).
+On start, the `app` container runs migrations and caches config, routes and views. TLS is expected to terminate in
+front of `web`, for example at a load balancer or reverse proxy. The same images can be deployed to any container
+platform.
+
+## Project layout
+
+```
+bin/init                   names a fresh copy of the template
+docker/php/Dockerfile      dev, app (production PHP-FPM) and web (production Nginx) targets
+docker/conf/               Nginx, MariaDB and TLS configuration
+docker-compose.yml         local development stack
+compose.prod.yaml          production-like stack with queue and scheduler
+.github/                   CI workflow and Dependabot
+```
 
 ## Status
 
