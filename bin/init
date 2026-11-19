@@ -23,6 +23,11 @@ name=$(slug "${1:-$(basename "$PWD")}")
 vendor=$(slug "${2:-${owner:-app}}")
 [ -n "$name" ] || { echo "bin/init: empty project name" >&2; exit 1; }
 
+# Generated files belong to the project from now on.
+if grep -q '^# >>> laravel-base' .gitignore; then
+    sed -i.bak '/^# >>> laravel-base/,/^# <<< laravel-base/d' .gitignore && rm -f .gitignore.bak
+fi
+
 for file in .env.example .env; do
     [ -f "$file" ] && sed -i.bak "s/^APP_NAME=.*/APP_NAME=$name/" "$file" && rm -f "$file.bak"
 done

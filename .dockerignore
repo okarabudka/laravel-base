@@ -18,3 +18,4 @@ database/database.sqlite
 docker/data
 docker/conf/ssl/*.pem
 docker/conf/ssl/*.key
+overlay

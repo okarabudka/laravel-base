@@ -1,0 +1,12 @@
+#!/bin/sh
+# Creates package-lock.json for the generated skeleton. Runs in the node container (see `make app`).
+# Supply-chain guard: no install scripts, and only versions published at least 14 days ago.
+set -eu
+
+cd "$(dirname "$0")/.."
+
+[ -f package-lock.json ] && exit 0
+
+cutoff=$(date -u -d "@$(( $(date +%s) - 14 * 86400 ))" +%Y-%m-%d)
+echo "==> Locking frontend packages published before $cutoff"
+npm install --package-lock-only --ignore-scripts --before="$cutoff"

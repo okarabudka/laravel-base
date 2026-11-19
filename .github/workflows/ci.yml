@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    # Weekly: generate from the newest Laravel release to catch upstream changes early.
+    - cron: '0 6 * * 1'
 
 permissions:
   contents: read
@@ -12,24 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          extensions: pdo_sqlite, intl, zip
-          coverage: none
-
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.composer/cache/files
-          key: composer-${{ hashFiles('composer.lock') }}
-
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: cp .env.example .env && php artisan key:generate
-      - run: vendor/bin/pint --test
-      - run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
-      - run: php artisan test
+      - name: Generate the latest Laravel and start the stack
+        run: make up
+      - name: Generated files stay out of the template repository
+        run: test -z "$(git status --porcelain)" || { git status --porcelain; exit 1; }
+      - run: make lint
+      - run: make test
+      - run: curl -kfsS https://localhost:8443/health
+      - run: curl -fsS -o /dev/null http://localhost:8025
+      - if: failure()
+        run: docker compose logs
 
   secrets:
     runs-on: ubuntu-latest
@@ -41,16 +36,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  docker:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: make up
-      - run: curl -kfsS https://localhost:8443/up
-      - run: curl -fsS -o /dev/null http://localhost:8025
-      - if: failure()
-        run: docker compose logs
-
   new-project:
     runs-on: ubuntu-latest
     steps:
@@ -59,6 +44,8 @@ jobs:
         run: make init NAME=demo-app VENDOR=acme
       - run: grep -qx 'APP_NAME=demo-app' .env.example
       - run: grep -q 'acme/demo-app' composer.json
+      - name: Generated files are now part of the project
+        run: git status --porcelain | grep -q 'composer.json'
       - run: make up
       - run: curl -kfsS https://localhost:8443/ | grep -q '<title>demo-app</title>'
       - run: make test
@@ -67,12 +54,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: make app
       - name: Production environment
         run: |
           cp .env.example .env
           echo "APP_KEY=base64:$(openssl rand -base64 32)" >> .env
       - run: docker compose -f compose.prod.yaml up -d --build --wait
-      - run: curl -fsS http://localhost:8080/up
+      - run: curl -fsS http://localhost:8080/health
       - run: curl -fsS http://localhost:8080/ | grep -q '/build/assets/'
       - if: failure()
         run: docker compose -f compose.prod.yaml logs

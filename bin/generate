@@ -1,0 +1,42 @@
+#!/bin/sh
+# Installs the latest Laravel skeleton and applies this template on top of it.
+# Runs inside the PHP container (see `make app`); does nothing once `artisan` exists.
+# Pin a version with LARAVEL_VERSION, e.g. LARAVEL_VERSION=13.11.* make up
+set -eu
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+cd "$root"
+
+if [ -f artisan ]; then
+    exit 0
+fi
+
+package="laravel/laravel"
+[ -n "${LARAVEL_VERSION:-}" ] && package="laravel/laravel:${LARAVEL_VERSION}"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+app="$tmp/app"
+
+# Build the whole project in a temporary directory, so a failure leaves the root untouched.
+echo "==> Downloading $package"
+composer create-project --no-install --no-scripts --no-interaction --prefer-dist "$package" "$app"
+
+echo "==> Applying the template"
+cp -R overlay/. "$app/"
+(cd "$app" && php "$root/bin/patch-skeleton.php")
+
+cd "$app"
+composer remove --dev --no-update --no-interaction laravel/sail phpunit/phpunit 2>/dev/null || true  # Pest pins its own PHPUnit
+composer require --dev --no-update --no-interaction pestphp/pest pestphp/pest-plugin-laravel larastan/larastan
+composer update --no-interaction --prefer-dist --with-all-dependencies
+cd "$root"
+
+# Move the project into place; files the template already has (README, .gitignore, ...) stay as they are.
+for entry in "$app"/* "$app"/.[!.]*; do
+    [ -e "$entry" ] || continue
+    name=$(basename "$entry")
+    [ -e "$root/$name" ] || mv "$entry" "$root/$name"
+done
+
+echo "==> Laravel $(php artisan --version --no-ansi | sed 's/Laravel Framework //') is ready"

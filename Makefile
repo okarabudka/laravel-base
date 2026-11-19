@@ -10,13 +10,17 @@ COMPOSE := docker compose
 # -T keeps exec usable without a TTY (CI, scripts).
 EXEC := $(COMPOSE) exec -T php
 
-.PHONY: help init certs env up dev down sh test lint fix
+.PHONY: help init app certs env up dev down sh test lint fix
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
 
-init: ## Rename the template copy: make init NAME=my-app [VENDOR=acme]
+init: app ## Turn this copy into your project: make init NAME=my-app [VENDOR=acme]
 	@sh bin/init "$(NAME)" "$(VENDOR)"
+
+app: ## Install the latest Laravel and apply the template (first run only)
+	@test -f artisan || { $(COMPOSE) build php && $(COMPOSE) run --rm --no-deps php sh bin/generate; }
+	@test -f package-lock.json || $(COMPOSE) --profile dev run --rm --no-deps node sh bin/lock-assets
 
 certs: ## Create a self-signed TLS certificate (skipped if present)
 	@sh docker/conf/ssl/generate.sh
@@ -25,7 +29,7 @@ env: ## Create .env and the SQLite database file (skipped if present)
 	@test -f .env || cp .env.example .env
 	@touch database/database.sqlite
 
-up: certs env ## Build and start containers, install dependencies, migrate
+up: certs app env ## Build and start containers, install dependencies, migrate
 	$(COMPOSE) up -d --build
 	$(EXEC) composer install --no-interaction
 	@grep -q '^APP_KEY=.\+' .env || $(EXEC) php artisan key:generate
