@@ -95,6 +95,22 @@ git add -A && git commit -m "Start my-app from laravel-base"
 
 It is safe to run again.
 
+Optional modules can be added at the same time or later:
+
+```bash
+make init NAME=my-app WITH=api,auth,horizon
+make module M=api
+```
+
+| Module    | What it adds                                                                         |
+|-----------|--------------------------------------------------------------------------------------|
+| `api`     | Sanctum token auth and `routes/api.php`; `HasApiTokens` on the `User` model         |
+| `auth`    | Laravel Fortify: registration, login, password reset and 2FA endpoints without a UI |
+| `horizon` | Laravel Horizon on Redis; Redis runs by default and production runs Horizon         |
+
+Each module keeps the project green: the scaffolding is adjusted for PHPStan level max and code style, and CI
+initialises a project with all modules on every run.
+
 ### Open in Codespaces
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/okarabudka/laravel-base)
@@ -118,6 +134,7 @@ If a port is taken, change `HTTP_PORT`, `HTTPS_PORT` or `MAILPIT_PORT` in `.env`
 |------------------|-----------------------------------------------------------------|
 | `make init`      | Turn the copy into your project: `make init NAME=my-app [VENDOR=acme]` |
 | `make sync-template` | Show template changes; `APPLY=1` takes over infrastructure files |
+| `make module`    | Add a module later: `make module M=api\|auth\|horizon`             |
 | `make up`        | Generate on first run, then start containers, install, migrate  |
 | `make app`       | Only generate the Laravel project (first run)                   |
 | `make dev`       | `make up` plus the Vite dev server with hot reload              |
@@ -193,6 +210,7 @@ bin/patch-skeleton.php     anchored edits to skeleton files
 bin/lock-assets            locks frontend packages (14-day cooldown, no install scripts)
 bin/init                   turns a copy into your project
 bin/sync-template          compares a project with the current template
+bin/module                 optional modules (api, auth, horizon)
 overlay/                   files the template adds to every project
 docker/php/Dockerfile      dev, app (PHP-FPM), web (Nginx) and server (both, for Kamal) targets
 docker/conf/               Nginx, MariaDB and TLS configuration

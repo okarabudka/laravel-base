@@ -61,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Initialise as a new project
-        run: make init NAME=demo-app VENDOR=acme
+        run: make init NAME=demo-app VENDOR=acme WITH=api,auth,horizon
       - run: grep -qx 'APP_NAME=demo-app' .env.example
       - run: grep -q 'acme/demo-app' composer.json
       - name: Generated files are now part of the project
@@ -69,6 +69,7 @@ jobs:
       - run: make up
       - run: curl -kfsS https://localhost:8443/ | grep -q '<title>demo-app</title>'
       - run: make test
+      - run: make lint
 
   production:
     runs-on: ubuntu-latest
