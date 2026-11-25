@@ -56,7 +56,7 @@ case "${1:-}" in
             $prod = file_get_contents("compose.prod.yaml");
             $prod = str_replace("\"queue:work\", \"--tries=3\", \"--max-time=3600\"]", "\"horizon\"]", $prod, $b);
             $prod = str_replace("[\"CMD\", \"pgrep\", \"-f\", \"queue:work\"]", "[\"CMD\", \"pgrep\", \"-f\", \"horizon\"]", $prod, $c);
-            $prod = str_replace("\nvolumes:\n", "\n  redis:\n    image: redis:7-alpine\n    restart: unless-stopped\n\nvolumes:\n", $prod, $d);
+            $prod = str_replace("\nvolumes:\n", "\n  redis:\n    image: redis:8-alpine\n    restart: unless-stopped\n\nvolumes:\n", $prod, $d);
             if ($a !== 1 || $b !== 1 || $c !== 1 || $d !== 1) { fwrite(STDERR, "horizon: compose files have an unexpected shape\n"); exit(1); }
             file_put_contents("docker-compose.yml", $dev);
             file_put_contents("compose.prod.yaml", $prod);'

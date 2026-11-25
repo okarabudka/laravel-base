@@ -161,7 +161,7 @@ files. Your own files stay, and application code is never overwritten: you merge
 | mail    | `axllent/mailpit`           | 8025 (UI), SMTP inside network  |
 | node    | `node:26-alpine` (`dev`)    | 5173 (Vite, HTTPS)              |
 | db      | `mariadb:11.4` (`full`)     | —                               |
-| redis   | `redis:7-alpine` (`full`)   | —                               |
+| redis   | `redis:8-alpine` (`full`)   | —                               |
 
 To use MariaDB and Redis, run `docker compose --profile full up -d` and switch the connection in `.env`
 (`DB_CONNECTION=mariadb`, `DB_HOST=db` and the commented `DB_*` values).
