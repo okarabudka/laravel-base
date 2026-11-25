@@ -159,7 +159,7 @@ files. Your own files stay, and application code is never overwritten: you merge
 | web     | `nginx:1.31-alpine`         | 8443 (HTTPS), 8080 (HTTP)       |
 | php     | `docker/php/Dockerfile`     | —                               |
 | mail    | `axllent/mailpit`           | 8025 (UI), SMTP inside network  |
-| node    | `node:22-alpine` (`dev`)    | 5173 (Vite, HTTPS)              |
+| node    | `node:26-alpine` (`dev`)    | 5173 (Vite, HTTPS)              |
 | db      | `mariadb:11.4` (`full`)     | —                               |
 | redis   | `redis:7-alpine` (`full`)   | —                               |
 
