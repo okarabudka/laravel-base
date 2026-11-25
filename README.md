@@ -156,7 +156,7 @@ files. Your own files stay, and application code is never overwritten: you merge
 
 | Service | Image                       | Port (host)                     |
 |---------|-----------------------------|---------------------------------|
-| web     | `nginx:1.27-alpine`         | 8443 (HTTPS), 8080 (HTTP)       |
+| web     | `nginx:1.31-alpine`         | 8443 (HTTPS), 8080 (HTTP)       |
 | php     | `docker/php/Dockerfile`     | —                               |
 | mail    | `axllent/mailpit`           | 8025 (UI), SMTP inside network  |
 | node    | `node:22-alpine` (`dev`)    | 5173 (Vite, HTTPS)              |
